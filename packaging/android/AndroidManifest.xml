@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Графические требования: OpenGL ES 3.0+ обязателен, Vulkan опционален (используется приоритетно). -->
+    <uses-feature
+        android:glEsVersion="0x00030000"
+        android:required="true" />
+    <uses-feature
+        android:name="android.hardware.vulkan.level"
+        android:version="1"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.vulkan.version"
+        android:version="0x401000"
+        android:required="false" />
+
+    <!-- Поддержка планшетов, стилусов и устройств с внешней мышью/клавиатурой (ChromeOS, DeX). -->
+    <uses-feature
+        android:name="android.hardware.touchscreen"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.stylus"
+        android:required="false" />
+
+    <!--
+        Доступ к файлам выполняется исключительно через Storage Access Framework (SAF:
+        ActivityResultContracts.OpenDocument / CreateDocument) — разрешения на прямой доступ
+        к хранилищу (MANAGE_EXTERNAL_STORAGE / WRITE_EXTERNAL_STORAGE) не запрашиваются.
+    -->
+
+    <application
+        android:allowBackup="true"
+        android:hardwareAccelerated="true"
+        android:largeHeap="true"
+        android:label="PhotoCraft"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.AppCompat.NoActionBar">
+
+        <activity
+            android:name=".MainActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|uiMode|density|fontScale"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:resizeableActivity="true"
+            android:screenOrientation="unspecified">
+
+            <!-- Имя нативной Rust-библиотеки (libphotocraft_android.so) для GameActivity. -->
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="photocraft_android" />
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Открытие изображений из сторонних файловых менеджеров через SAF content:// URI. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.EDIT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

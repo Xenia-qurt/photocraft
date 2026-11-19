@@ -1,0 +1,39 @@
+[package]
+name = "photocraft-android"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lib]
+name = "photocraft_android"
+crate-type = ["cdylib", "rlib"]
+
+# На Android для FFI-точки входа `android_main` и JNI-коллбэков SAF требуется
+# точечный `#[allow(unsafe_code)]` с комментариями SAFETY, поэтому используем `deny`
+# вместо workspace-уровня `forbid` (остальные клиппи-правила полностью совпадают).
+[lints.rust]
+unsafe_code = "deny"
+
+[lints.clippy]
+cognitive_complexity = "deny"
+too_many_arguments = "deny"
+wildcard_imports = "deny"
+dbg_macro = "warn"
+todo = "warn"
+
+[dependencies]
+photocraft-engine = { workspace = true }
+photocraft-ui-egui = { workspace = true }
+photocraft-tablet = { workspace = true }
+photocraft-io = { workspace = true }
+eframe = { workspace = true, features = ["wgpu"] }
+egui = { workspace = true }
+log = { workspace = true }
+
+# Android-специфичные зависимости (уже зафиксированы в Cargo.lock; не требуют сети).
+[target.'cfg(target_os = "android")'.dependencies]
+eframe = { workspace = true, features = ["wgpu", "android-game-activity", "persistence"] }
+winit = { version = "=0.30.13", default-features = false, features = ["android-game-activity"] }
+jni = "0.22.4"
+ndk-context = "0.1.1"

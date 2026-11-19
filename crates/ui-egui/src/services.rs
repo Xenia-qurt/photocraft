@@ -1,4 +1,4 @@
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", target_os = "android"))]
 use super::FileDialogFn;
 use super::{Document, OsEvent, Value, dds_options_ui, jobs_ui, jpeg_options_ui, monitor_status, targa_options_ui, tiff_options_ui};
 
@@ -359,7 +359,7 @@ pub struct AutomationServices {
 /// What agent requests may read, write and run with the agent settings' folders, and why a folder
 /// is not used (`None`: every folder is). The app's policy, installed while the agent link runs
 /// (`prefs_ui::agents::sync_agent_link`).
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
 pub type AgentAutomationFn = Box<dyn Fn(&craft::automation::agents::AgentSettings) -> (AutomationServices, Option<String>)>;
 
 /// Open a URL in the system browser (native) — reliable cross-platform, unlike `ctx.open_url`.
@@ -508,7 +508,7 @@ pub struct Services {
     /// The file service the app's host answers file picks with (`HostBuilder::files`); `None` in tests that install none.
     pub files: Option<std::sync::Arc<dyn craft::host::Files>>,
     /// The main-thread side of the native file panels, pumped by the app.
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
     pub file_panels: Option<craft::dialogs::service::FilePanels>,
     /// The opened settings store and what opening it reported; `None` in the web build.
     #[cfg(not(target_arch = "wasm32"))]
@@ -520,11 +520,10 @@ pub struct Services {
     /// Background save over the automation write authority (`app.save`, #2017): same worker
     /// contract as `save_file`, but the bytes go through the capability-scoped workspace.
     pub automation_save: Option<SaveFileFn>,
-    /// Show an Open or Save dialog without waiting for it (see `file_dialog`). The web build's file path until
-    /// the framework's web `Files` exists (FW-264).
-    #[cfg(target_arch = "wasm32")]
+    /// Show an Open or Save dialog without waiting for it (see `file_dialog`): web and Android SAF.
+    #[cfg(any(target_arch = "wasm32", target_os = "android"))]
     pub file_dialog: Option<FileDialogFn>,
-    /// Write bytes to a path (native) or trigger a download (web).
+    /// Write bytes to a path (native), SAF URI (Android), or trigger a download (web).
     pub write: Option<WriteFn>,
     /// Size and modification time of a file (native); `None` on the web, where Save never
     /// writes back to a file.
@@ -552,17 +551,17 @@ pub struct Services {
     /// an automation-driven [`PhotocraftApp::run`] runs, so a local play of a recorded `file.*` step still works.
     pub automation_authorize: Option<AutomationAuthorizeFn>,
     /// The control server agents reach the open window through while the person lets them in
-    /// (Preferences › Integrations, or `--control` for the whole run). `None` on the web and in
+    /// (Preferences › Integrations, or `--control` for the whole run). `None` on the web/Android and in
     /// tests that don't set it.
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
     pub agent_link: Option<craft::automation::agents::AgentLink>,
     /// The ArtCraft Launcher's agents switch behind the suite's `AI-MCP` flag, watched on its own
-    /// thread. `None` is no flag and no launcher (the web, tests that don't set it).
-    #[cfg(not(target_arch = "wasm32"))]
+    /// thread. `None` is no flag and no launcher (the web, Android, tests that don't set it).
+    #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
     pub agent_switch: Option<craft::automation::agents::AgentSwitch>,
     /// What agent requests may use while the agent link runs ([`AgentAutomationFn`]); `None`: no
     /// file access for them.
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
     pub agent_automation: Option<AgentAutomationFn>,
     /// Open a URL in the system browser (native). Falls back to `ctx.open_url` (web) when unset.
     pub open_url: Option<OpenUrlFn>,

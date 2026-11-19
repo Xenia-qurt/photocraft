@@ -221,6 +221,8 @@ impl PhotocraftApp {
             autosave: craft::platform::autosave::Autosave::new(None),
             // The feed the runtime was installed with: each pointer the canvas takes carries the pen's reading.
             stylus: stylus::Stylus::over(pen_feed),
+            touch_gestures: Default::default(),
+            tablet_ui: Default::default(),
             background_jobs: false,
             min_frame_ms: None,
             last_frame_start_ms: 0.0,

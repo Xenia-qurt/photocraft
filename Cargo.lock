@@ -219,6 +219,7 @@ dependencies = [
  "ndk-context",
  "ndk-sys",
  "num_enum",
+ "simd_cesu8",
  "thiserror 2.0.21",
 ]
 
@@ -6428,6 +6429,22 @@ dependencies = [
  "rustfft",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "photocraft-android"
+version = "0.23.1"
+dependencies = [
+ "eframe",
+ "egui",
+ "jni",
+ "log",
+ "ndk-context",
+ "photocraft-engine",
+ "photocraft-io",
+ "photocraft-tablet",
+ "photocraft-ui-egui",
+ "winit",
 ]
 
 [[package]]

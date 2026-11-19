@@ -28,6 +28,7 @@ pub fn alias(name: &str) -> Option<(&'static str, bool)> {
         "breezedark" | "kdedark" | "plasmadark" => ("craft.breeze", true),
         "softdark" => ("craft.soft", true),
         "softlight" => ("craft.soft", false),
+        "tabletdark" => ("photocraft.tablet-dark", true),
         _ => return None,
     })
 }

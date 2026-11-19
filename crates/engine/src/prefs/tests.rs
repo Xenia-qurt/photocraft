@@ -677,6 +677,69 @@ fn gpu_backend_round_trips_and_validates() {
     for n in GpuBackend::NAMES {
         assert_eq!(GpuBackend::parse(n).map(GpuBackend::name), Some(*n));
     }
+    // Проверяем профили OpenGL ES для Android (gles32 / gles31 / gles30).
+    for (name, expected) in [("gles32", GpuBackend::Gles32), ("gles31", GpuBackend::Gles31), ("gles30", GpuBackend::Gles30)] {
+        s.execute("prefs.set", json!({"path": "performance.gpuBackend", "value": name})).unwrap();
+        assert_eq!(s.prefs().performance.gpu_backend, expected);
+        assert_eq!(s.execute("prefs.get", json!({"path": "performance.gpuBackend"})).unwrap(), json!(name));
+    }
+}
+
+#[test]
+fn touch_prefs_defaults_validate_and_round_trip() {
+    let mut s = session();
+    // Проверяем значения по умолчанию для планшетного ввода и жестов.
+    let def = &s.prefs().touch;
+    assert!(def.palm_rejection);
+    assert!(def.finger_draws);
+    assert!(def.pinch_zoom_rotate);
+    assert_eq!(def.stylus_primary_button, StylusButtonAction::Eraser);
+    assert_eq!(def.stylus_secondary_button, StylusButtonAction::Eyedropper);
+    assert_eq!(def.three_finger_tap, TouchGestureAction::Undo);
+    assert_eq!(def.four_finger_tap, TouchGestureAction::Redo);
+    assert_eq!(def.three_finger_swipe_down, TouchGestureAction::CanvasOnly);
+    assert_eq!(def.long_press_ms, 450);
+    assert!(def.auto_tablet_layout);
+
+    assert_eq!(choices("touch.stylusPrimaryButton"), Some(StylusButtonAction::NAMES));
+    assert_eq!(choices("touch.threeFingerSwipeDown"), Some(TouchGestureAction::NAMES));
+    assert_eq!(range("touch.longPressMs"), Some((200.0, 1500.0)));
+
+    // Изменение отдельных параметров и всей секции через командный интерфейс.
+    s.execute("prefs.set", json!({"path": "touch.palmRejection", "value": false})).unwrap();
+    s.execute("prefs.set", json!({"path": "touch.stylusPrimaryButton", "value": "quickMenu"})).unwrap();
+    s.execute("prefs.set", json!({"path": "touch.threeFingerSwipeDown", "value": "resetView"})).unwrap();
+    s.execute("prefs.set", json!({"path": "touch.longPressMs", "value": 600})).unwrap();
+    assert!(!s.prefs().touch.palm_rejection);
+    assert_eq!(s.prefs().touch.stylus_primary_button, StylusButtonAction::QuickMenu);
+    assert_eq!(s.prefs().touch.three_finger_swipe_down, TouchGestureAction::ResetView);
+    assert_eq!(s.prefs().touch.long_press_ms, 600);
+
+    // Некорректные значения отклоняются без изменения состояния.
+    for (path, bad) in [
+        ("touch.stylusPrimaryButton", json!("invalid")),
+        ("touch.threeFingerTap", json!("zoom")),
+        ("touch.longPressMs", json!(50)),
+        ("touch.longPressMs", json!(2000)),
+        ("touch.palmRejection", json!("yes")),
+    ] {
+        assert!(s.execute("prefs.set", json!({"path": path, "value": bad})).is_err(), "{path}");
+    }
+    assert_eq!(s.prefs().touch.long_press_ms, 600);
+
+    // Сохранение и восстановление через JSON.
+    let mut restored = Session::new();
+    restored.load_prefs_json(&s.prefs_to_json()).unwrap();
+    assert_eq!(restored.prefs().touch, s.prefs().touch);
+
+    // Старые файлы настроек без секции `touch` загружаются со значениями по умолчанию.
+    let mut legacy = Session::new();
+    legacy.load_prefs_json(r#"{"performance": {"useGpu": true}}"#).unwrap();
+    assert_eq!(legacy.prefs().touch, TouchPrefs::default());
+
+    // Сброс секции возвращает значения по умолчанию.
+    s.execute("prefs.reset", json!({"path": "touch"})).unwrap();
+    assert_eq!(s.prefs().touch, TouchPrefs::default());
 }
 
 /// #2022: notices auto-hide after a user-set delay by default; both settings round-trip.

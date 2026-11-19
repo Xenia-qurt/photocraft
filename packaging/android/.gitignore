@@ -1,0 +1,6 @@
+# Временные файлы и артефакты локальной сборки Android / Gradle.
+local.properties
+.gradle/
+build/
+app/build/
+app/src/main/jniLibs/

@@ -34,6 +34,7 @@ use crate::render_path::CpuReason;
 pub use pages::{MAX_PAGE_SIDE, PageUpload};
 pub use photocraft_gpu::{DeviceHealth, Fault};
 
+pub mod android_gpu;
 mod budget;
 mod callback;
 mod compositor_build;
@@ -46,6 +47,10 @@ mod setup;
 mod shaders;
 mod texels;
 
+pub use android_gpu::{
+    ANDROID_DEFAULT_TILE, ANDROID_LEGACY_TILE, AndroidGpuProfile, android_backend_chain, android_device_limits, android_profile, android_wgpu_setup,
+    next_android_fallback,
+};
 #[cfg(all(test, windows))]
 use budget::detect_video_memory;
 #[cfg(all(test, target_os = "linux"))]

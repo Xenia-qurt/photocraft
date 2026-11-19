@@ -61,6 +61,7 @@ pub(crate) mod registry;
 pub mod smart_ui;
 mod status_bar;
 pub mod swatches_ui;
+pub mod tablet_layout;
 pub(super) mod timeline_ui;
 pub(crate) mod title_bar;
 pub(crate) mod tool_commands;

@@ -8,5 +8,6 @@ pub mod shortcuts;
 pub mod spring_tools;
 pub mod stylus;
 pub(super) mod tool_shortcuts;
+pub mod touch_gestures;
 pub mod touch_twins;
 pub mod window_keys;

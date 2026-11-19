@@ -76,7 +76,7 @@ pub use craft::window::{
     Prefix,
     policy::{self as window_policy, Backend, Decision, Frame, TitleBarPref},
 };
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", target_os = "android"))]
 pub use file_dialog::{FileDialogAnswer, FileDialogFn, FileDialogReply, FileDialogRequest};
 pub use file_open::OsEvent;
 pub use state::{Tool, UiState};
@@ -187,6 +187,7 @@ pub use input::shortcuts;
 pub use input::spring_tools;
 pub use input::stylus;
 use input::tool_shortcuts;
+pub use input::touch_gestures;
 pub use input::touch_twins;
 pub use input::window_keys;
 pub use menus::enable_rules;
@@ -224,13 +225,14 @@ use panels::panel_docking;
 pub use panels::preset_panels;
 pub use panels::smart_ui;
 pub use panels::swatches_ui;
+pub use panels::tablet_layout;
 use panels::timeline_ui;
 pub use panels::type_panels_ui;
 use panels::variables_ui;
 pub use prefs::kys_import;
 pub use prefs::prefs_ui;
 use prefs::pressure_curve_ui;
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
 pub use services::AgentAutomationFn;
 pub use services::AutomationReadResult;
 pub(crate) use services::SAVE_OPTIONS_OPEN;
@@ -676,6 +678,10 @@ pub struct PhotocraftApp {
     pub(crate) tiff_remembered: tiff_options_ui::Remembered,
     /// Pen pressure/tilt from the platform (see `stylus`).
     pub stylus: stylus::Stylus,
+    /// Распознаватель мультитач-жестов и кнопок стилуса (Android и сенсорные экраны).
+    pub touch_gestures: touch_gestures::TouchGestureEngine,
+    /// Состояние планшетного интерфейса (шторка 69 инструментов, правая шторка, режим «Только холст»).
+    pub tablet_ui: tablet_layout::TabletUiState,
     /// Run long commands and file opens as background jobs with progress and Cancel (#210; see
     /// `jobs_ui`). The desktop app turns it on; off (the default), everything runs inline as
     /// before, which tests and scripts rely on.

@@ -191,7 +191,11 @@ fn mode_choice(mode: AppearanceMode) -> ModeChoice {
     }
 }
 
+/// Тема по умолчанию в тёмном режиме: на Android используется OLED-тема Tablet Dark, на десктопе — Pro (Medium Gray).
+#[cfg(target_os = "android")]
+const DEFAULT_DARK: &str = crate::theme::TABLET_DARK_ID;
 /// PhotoCraft's theme in the dark mode when nobody chose one: Pro (Medium Gray).
+#[cfg(not(target_os = "android"))]
 const DEFAULT_DARK: &str = "craft.artcraft";
 /// PhotoCraft's theme in the light mode when nobody chose one: Pro (Light).
 const DEFAULT_LIGHT: &str = "craft.pro";
@@ -289,7 +293,7 @@ impl Framework {
     }
 
     /// The host's file service. The web has no host `Files` until FW-264 and reads its own dialog path.
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
     pub(crate) fn files(&self) -> &dyn Files {
         self.host.files()
     }
@@ -457,7 +461,7 @@ impl Framework {
 
     /// Whether theme `id` can show now: the suite has it as a built-in or a loaded library theme.
     pub(crate) fn theme_availability(&self, id: &ThemeId) -> Result<(), ThemeUnavailable> {
-        if self.suite.has_theme(id) {
+        if id.as_str() == crate::theme::TABLET_DARK_ID || self.suite.has_theme(id) {
             Ok(())
         } else if self.suite.is_loading(id) {
             Err(ThemeUnavailable::Loading)

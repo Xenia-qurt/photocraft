@@ -328,6 +328,30 @@ opt-level = "z"
 [profile.wasm-release.package.photocraft-paint]
 opt-level = 3
 
+# Сборка под Android (aarch64-linux-android / armv7-linux-androideabi):
+# баланс между размером APK/AAB и максимальной скоростью растрового ядра.
+[profile.android-release]
+inherits = "release"
+opt-level = "s"
+lto = "thin"
+codegen-units = 4
+strip = "debuginfo"
+
+# Горячие пути обработки пикселей и композитинга сохраняют максимальную оптимизацию.
+[profile.android-release.package.photocraft-raster]
+opt-level = 3
+[profile.android-release.package.photocraft-color]
+opt-level = 3
+[profile.android-release.package.photocraft-compose]
+opt-level = 3
+[profile.android-release.package.photocraft-paint]
+opt-level = 3
+[profile.android-release.package.photocraft-algo]
+opt-level = 3
+# UI-слой содержит большой объём мономорфизации egui; opt-level = 1 снижает пиковое потребление RAM при сборке без влияния на FPS.
+[profile.android-release.package.photocraft-ui-egui]
+opt-level = 1
+
 # Keep the complete egui family and native event bridge on reviewed fork commits.
 
 [patch.crates-io]

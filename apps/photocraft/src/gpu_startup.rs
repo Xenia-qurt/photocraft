@@ -121,7 +121,10 @@ pub struct Plan {
 pub fn sanitize(pref: GpuBackend, os: Os) -> GpuBackend {
     use GpuBackend::*;
     match (os, pref) {
-        (Os::Windows, Metal) | (Os::Mac, Vulkan | Dx12 | Gl) | (Os::Other, Dx12 | Metal) => Auto,
+        // Профили OpenGL ES предназначены для Android; на десктопе сбрасываются в `auto`.
+        (Os::Windows, Metal | Gles32 | Gles31 | Gles30)
+        | (Os::Mac, Vulkan | Dx12 | Gl | Gles32 | Gles31 | Gles30)
+        | (Os::Other, Dx12 | Metal | Gles32 | Gles31 | Gles30) => Auto,
         (_, b) => b,
     }
 }
@@ -130,11 +133,11 @@ pub fn sanitize(pref: GpuBackend, os: Os) -> GpuBackend {
 pub fn next_safer(tried: GpuBackend, os: Os) -> GpuBackend {
     use GpuBackend::*;
     match (os, tried) {
-        (Os::Windows, Auto | Vulkan | Gl | Metal) => Dx12,
+        (Os::Windows, Auto | Vulkan | Gl | Metal | Gles32 | Gles31 | Gles30) => Dx12,
         (Os::Windows, Dx12 | Cpu) => Cpu,
         (Os::Mac, _) => Cpu,
         (Os::Other, Auto | Vulkan | Dx12 | Metal) => Gl,
-        (Os::Other, Gl | Cpu) => Cpu,
+        (Os::Other, Gl | Gles32 | Gles31 | Gles30 | Cpu) => Cpu,
     }
 }
 
@@ -199,7 +202,7 @@ pub fn backends(plan: &Plan, os: Os) -> Option<wgpu::Backends> {
         GpuBackend::Vulkan => wgpu::Backends::VULKAN,
         GpuBackend::Dx12 => wgpu::Backends::DX12,
         GpuBackend::Metal => wgpu::Backends::METAL,
-        GpuBackend::Gl => wgpu::Backends::GL,
+        GpuBackend::Gl | GpuBackend::Gles32 | GpuBackend::Gles31 | GpuBackend::Gles30 => wgpu::Backends::GL,
         GpuBackend::Cpu => match os {
             Os::Windows => wgpu::Backends::DX12,
             Os::Mac => wgpu::Backends::METAL,

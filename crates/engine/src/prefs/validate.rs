@@ -2,8 +2,8 @@ use super::shortcuts::normalize_shortcut;
 use super::{
     AppearanceMode, Ask, CanvasBorder, CanvasColor, CheckerColors, CheckerSize, ColorPicker, ExportLocation, ExportMetadata, FontPreview, GpuBackend,
     Interpolation, LineStyle, LinuxDisplayServer, LogDestination, LogDetail, OtherCursor, PaintingCursor, PlaybackPerformance, PointSize, PressureCurve,
-    QuickExportFormat, RawColorSpace, RawDemosaic, RawDepth, RawSharpen, RenderingMode, RightClickPaint, TabletInput, TextEngine, TypeUnit, UiFontSize,
-    UiScale, Unit, Value, WhenAppClosed,
+    QuickExportFormat, RawColorSpace, RawDemosaic, RawDepth, RawSharpen, RenderingMode, RightClickPaint, StylusButtonAction, TabletInput, TextEngine,
+    TouchGestureAction, TypeUnit, UiFontSize, UiScale, Unit, Value, WhenAppClosed,
 };
 
 /// Preferences dialog sections in Photoshop's order: (id, title).
@@ -101,6 +101,8 @@ pub fn choices(path: &str) -> Option<&'static [&'static str]> {
         "performance.renderingMode" => RenderingMode::NAMES,
         "integrations.whenAppClosed" => WhenAppClosed::NAMES,
         "actions.performance" => PlaybackPerformance::NAMES,
+        "touch.stylusPrimaryButton" | "touch.stylusSecondaryButton" => StylusButtonAction::NAMES,
+        "touch.threeFingerTap" | "touch.fourFingerTap" | "touch.threeFingerSwipeDown" => TouchGestureAction::NAMES,
         _ => return None,
     })
 }
@@ -129,6 +131,7 @@ pub fn range(path: &str) -> Option<(f64, f64)> {
         "layerMaskOverlay.opacity" => (0.0, 100.0),
         "type.recentFonts" => (0.0, 50.0),
         "integrations.controlPort" => (0.0, 65535.0),
+        "touch.longPressMs" => (200.0, 1500.0),
         _ => return None,
     })
 }

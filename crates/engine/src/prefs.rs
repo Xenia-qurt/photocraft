@@ -67,7 +67,44 @@ choice!(
     /// `auto` lets PhotoCraft pick (DX12 for Intel adapters on Windows); `cpu` composites on the
     /// CPU and draws the window with a software adapter where the platform has one. A start that
     /// crashes inside the graphics driver moves this to the next safer choice.
-    GpuBackend { Auto = "auto", Vulkan = "vulkan", Dx12 = "dx12", Metal = "metal", Gl = "gl", Cpu = "cpu" } default Auto
+    ///
+    /// На Android дополнительно доступны профили OpenGL ES (`gles32`, `gles31`, `gles30`)
+    /// для устройств со старыми или нестабильными драйверами Vulkan.
+    GpuBackend {
+        Auto = "auto",
+        Vulkan = "vulkan",
+        Dx12 = "dx12",
+        Metal = "metal",
+        Gl = "gl",
+        Gles32 = "gles32",
+        Gles31 = "gles31",
+        Gles30 = "gles30",
+        Cpu = "cpu"
+    } default Auto
+);
+choice!(
+    /// Действие, назначенное на кнопку стилуса (S Pen, Apple Pencil, USI и т. п.).
+    StylusButtonAction {
+        None = "none",
+        Eraser = "eraser",
+        Eyedropper = "eyedropper",
+        Undo = "undo",
+        Redo = "redo",
+        QuickMenu = "quickMenu",
+        Pan = "pan",
+        SecondaryClick = "secondaryClick"
+    } default Eraser
+);
+choice!(
+    /// Действие, выполняемое по многопальцевому сенсорному жесту.
+    TouchGestureAction {
+        None = "none",
+        Undo = "undo",
+        Redo = "redo",
+        CanvasOnly = "canvasOnly",
+        QuickMenu = "quickMenu",
+        ResetView = "resetView"
+    } default None
 );
 choice!(
     /// Rendering policy, independent of the advanced graphics backend selection.
@@ -430,6 +467,9 @@ impl Default for Interface {
     fn default() -> Self {
         Self {
             appearance_mode: AppearanceMode::Dark,
+            #[cfg(target_os = "android")]
+            dark_theme: "photocraft.tablet-dark".into(),
+            #[cfg(not(target_os = "android"))]
             dark_theme: "craft.artcraft".into(),
             light_theme: "craft.pro".into(),
             favorite_themes: Vec::new(),
@@ -1532,6 +1572,49 @@ impl std::ops::Deref for ToolColors {
     }
 }
 
+/// Настройки сенсорного ввода, стилуса и планшетного интерфейса (Android и сенсорные экраны).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct TouchPrefs {
+    /// Игнорировать касания ладони, пока стилус находится в зоне наведения или касается экрана.
+    pub palm_rejection: bool,
+    /// Разрешать рисование пальцем (при `false` пальцы используются только для жестов навигации, а рисование — стилусом).
+    pub finger_draws: bool,
+    /// Включить одновременный двухпальцевый зум, панорамирование и поворот холста.
+    pub pinch_zoom_rotate: bool,
+    /// Действие основной (боковой) кнопки стилуса.
+    pub stylus_primary_button: StylusButtonAction,
+    /// Действие дополнительной кнопки стилуса.
+    pub stylus_secondary_button: StylusButtonAction,
+    /// Действие при тапе тремя пальцами (по умолчанию — Undo).
+    pub three_finger_tap: TouchGestureAction,
+    /// Действие при тапе четырьмя пальцами (по умолчанию — Redo).
+    pub four_finger_tap: TouchGestureAction,
+    /// Действие при свайпе тремя пальцами вниз (по умолчанию — режим «Только холст»).
+    pub three_finger_swipe_down: TouchGestureAction,
+    /// Задержка долгого нажатия в миллисекундах (200..=1500) для вызова контекстного меню / пипетки.
+    pub long_press_ms: u32,
+    /// Автоматически включать планшетную компоновку интерфейса на Android и сенсорных устройствах.
+    pub auto_tablet_layout: bool,
+}
+
+impl Default for TouchPrefs {
+    fn default() -> Self {
+        Self {
+            palm_rejection: true,
+            finger_draws: true,
+            pinch_zoom_rotate: true,
+            stylus_primary_button: StylusButtonAction::Eraser,
+            stylus_secondary_button: StylusButtonAction::Eyedropper,
+            three_finger_tap: TouchGestureAction::Undo,
+            four_finger_tap: TouchGestureAction::Redo,
+            three_finger_swipe_down: TouchGestureAction::CanvasOnly,
+            long_press_ms: 450,
+            auto_tablet_layout: true,
+        }
+    }
+}
+
 /// All preferences. JSON keys are the `edit.preferences.<section>` ids.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
@@ -1640,6 +1723,8 @@ pub struct Preferences {
     pub script_events: crate::automate_cmds::ScriptEvents,
     /// Layer Mask Display Options: the layer mask rubylith's colour and opacity.
     pub layer_mask_overlay: LayerMaskOverlay,
+    /// Настройки сенсорного ввода, стилуса и планшетного режима.
+    pub touch: TouchPrefs,
 }
 
 impl Preferences {
@@ -2092,7 +2177,7 @@ impl Session {
         }
         let mut next = self.prefs().clone();
         let mut color_changed = false;
-        if path.is_empty() || SECTIONS.iter().any(|(id, _)| *id == path) || matches!(path, "shortcuts" | "alternateShortcuts" | "menus" | "toolbar") {
+        if path.is_empty() || SECTIONS.iter().any(|(id, _)| *id == path) || matches!(path, "shortcuts" | "alternateShortcuts" | "menus" | "toolbar" | "touch") {
             // Whole section (or everything): merge the object key by key so each value is checked.
             let obj = value.as_object().ok_or_else(|| format!("`{path}` needs an object"))?;
             let current = self.prefs().interface.clone();

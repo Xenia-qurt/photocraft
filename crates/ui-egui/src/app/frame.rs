@@ -115,6 +115,8 @@ impl PhotocraftApp {
             // tick finds them taken.
             crate::shortcut_dispatch::record_view_commands(self);
             shortcuts::handle(self, ctx);
+            // Мультитач-жесты (pinch/rotate, тапы 3/4 пальцами, свайп 3 пальцами вниз = Только холст).
+            crate::touch_gestures::tick(self, ctx);
         }
         let arrived: Vec<(String, Vec<u8>)> =
             self.services.inbox.as_ref().map(|q| std::mem::take(&mut *q.lock().unwrap_or_else(|e| e.into_inner()))).unwrap_or_default();
@@ -195,7 +197,7 @@ impl PhotocraftApp {
         // answers first, then the dialog's reply is applied once for the pass. The framework's
         // dialog service delivers every reply, the web's async completion included.
         // PLAN: `pump_files` is written by top-w28 (and `Services::files` by dialogs-w59); it does not exist yet.
-        #[cfg(not(target_arch = "wasm32"))]
+        #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
         self.pump_files(frame);
         self.poll_file_dialog();
         // Issue any due `ui.screenshot` now that this pass's state is settled: a queued request
@@ -218,6 +220,11 @@ impl PhotocraftApp {
         if screen_picker::busy(self) {
             ui.disable();
             ui.set_opacity(1.0);
+        }
+        // На Android (или при явном включении планшетного режима) рисуем сенсорную компоновку.
+        if crate::tablet_layout::is_tablet_mode(&self.session.prefs().touch, &self.tablet_ui) {
+            crate::tablet_layout::show(self, ui);
+            return;
         }
         // Home is only the menu bar and the Home content; the saved panel prefs are untouched.
         let home = self.home_screen_up();

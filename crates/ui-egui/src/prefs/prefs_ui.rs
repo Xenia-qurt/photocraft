@@ -46,7 +46,7 @@ pub struct Runtime {
 
 pub use crate::shortcuts::{default_shortcut, effective_shortcut};
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
 mod agents;
 mod appearance;
 mod custom_rows;

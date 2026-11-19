@@ -48,10 +48,15 @@ base64 = "0.23"
 web-time = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+craft = { workspace = true, features = ["update"] }
+rayon = { workspace = true }
+
+# Десктопные файловые диалоги (rfd), панель агентов и системная локаль: на Android
+# не используются (файлы открываются через SAF/JNI, локаль берётся из Android-конфигурации).
+[target.'cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))'.dependencies]
 # `FilePanels::pump_with`: rfd's folder picker and file paths exist on native only. Agents in the
 # open window (`craft::automation::agents`: the link, the launcher's switch, the Agents page) too.
-craft = { workspace = true, features = ["dialogs", "update", "automation-agents"] }
-rayon = { workspace = true }
+craft = { workspace = true, features = ["dialogs", "automation-agents"] }
 # Safe native UI-language APIs (Windows/macOS); no subprocess or web dependency.
 sys-locale = "=0.3.2"
 

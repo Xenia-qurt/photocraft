@@ -35,7 +35,7 @@ const LIGHT_THEME: &str = "interface.lightTheme";
 const DARK_THEME: &str = "interface.darkTheme";
 const FAVORITE_THEMES: &str = "interface.favoriteThemes";
 /// The page agents' settings live on, drawn whole by [`craft::automation::ui::agents::AgentsPage`].
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
 pub(super) const AGENTS_PAGE: &str = "integrations";
 /// The scratch disk entry that names the system's temporary folder rather than a path.
 const SYSTEM_TEMP: &str = "(system temp)";
@@ -51,10 +51,10 @@ pub(super) struct PrefsCustom {
     adapters: Vec<String>,
     installed_ram: Option<u64>,
     /// The agent link's state, for the Agents page.
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
     agent_status: craft::automation::agents::AgentLinkStatus,
     /// The suite's `AI-MCP` flag: the Agents page points to the ArtCraft Launcher's switch.
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
     mcp_flag: bool,
 }
 
@@ -71,9 +71,9 @@ impl PrefsCustom {
             gpu_info,
             adapters: app.perf.gpu_info.adapters.clone(),
             installed_ram: crate::gpu_canvas::physical_memory().filter(|n| *n > 0),
-            #[cfg(not(target_arch = "wasm32"))]
+            #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
             agent_status: app.services.agent_link.as_ref().map(|link| link.status().clone()).unwrap_or_default(),
-            #[cfg(not(target_arch = "wasm32"))]
+            #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
             mcp_flag: app.services.agent_switch.as_ref().is_some_and(|switch| switch.mcp_flag()),
         }
     }
@@ -95,7 +95,7 @@ impl CustomSettings<PrefPages> for PrefsCustom {
         }
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
     fn page(&mut self, ui: &mut egui::Ui, page: &str, draft: &mut SettingsDraft) {
         if page == AGENTS_PAGE {
             craft::automation::ui::agents::AgentsPage::new(AGENTS_PAGE, draft, &self.agent_status).mcp_flag(self.mcp_flag).show(ui);
@@ -209,7 +209,18 @@ impl PrefsCustom {
         help(ui, tl!("Applies at next launch."));
         egui::CollapsingHeader::new(tl!("Advanced")).show(ui, |ui| {
             let backend: String = draft.get(GPU_BACKEND).unwrap_or_else(|| "auto".into());
-            if let Some(next) = choose(ui, tl!("GPU Backend"), "graphics-backend", backend, &choices_of(GPU_BACKEND)) {
+            // На Android показываем мобильные профили (Vulkan + GLES 3.x + CPU), на десктопе скрываем GLES.
+            let options: Vec<(String, String)> = choices_of(GPU_BACKEND)
+                .into_iter()
+                .filter(|(id, _)| {
+                    if cfg!(target_os = "android") {
+                        matches!(id.as_str(), "auto" | "vulkan" | "gles32" | "gles31" | "gles30" | "cpu")
+                    } else {
+                        !matches!(id.as_str(), "gles32" | "gles31" | "gles30")
+                    }
+                })
+                .collect();
+            if let Some(next) = choose(ui, tl!("GPU Backend"), "graphics-backend", backend, &options) {
                 draft.set(GPU_BACKEND, &next);
             }
             if prefs::is_hidden(GPU_ADAPTER) {
@@ -292,6 +303,18 @@ impl PrefsCustom {
                 saved.push(id.as_str().to_owned());
             }
             draft.set(FAVORITE_THEMES, &saved);
+        }
+        // Ручной переключатель планшетной OLED-темы Tablet Dark (на Android активна по умолчанию).
+        let is_tablet_dark = draft.get::<String>(DARK_THEME).as_deref() == Some(crate::theme::TABLET_DARK_ID);
+        let mut use_tablet_dark = is_tablet_dark;
+        Checkbox::new(Bind::bound(&mut use_tablet_dark)).label("Tablet Dark (OLED)").id_salt("tablet-dark-theme").show(ui);
+        if use_tablet_dark != is_tablet_dark {
+            if use_tablet_dark {
+                draft.set(DARK_THEME, &crate::theme::TABLET_DARK_ID);
+                draft.set(APPEARANCE_MODE, &"dark");
+            } else {
+                draft.set(DARK_THEME, &"craft.artcraft");
+            }
         }
     }
 }

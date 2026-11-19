@@ -14,7 +14,7 @@
 
 use std::path::{Path, PathBuf};
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
 use craft::host::PickId;
 use craft::host::{PickKind, PickRequest, Picked};
 use photocraft_doc::DocId;
@@ -26,9 +26,8 @@ use crate::file_open::{display_name, path_text};
 mod filters;
 use filters::{open_filters, save_request};
 
-/// What a file or folder dialog asks the user for, on the web build, which keeps its own dialog
-/// path until the framework's web `Files` replaces it (FW-264).
-#[cfg(target_arch = "wasm32")]
+/// What a file or folder dialog asks the user for, on web and Android SAF builds.
+#[cfg(any(target_arch = "wasm32", target_os = "android"))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FileDialogRequest {
     /// Files to read: several for File › Open, one for a command that reads a file (Place,
@@ -40,17 +39,17 @@ pub enum FileDialogRequest {
     Save { suggested: String },
 }
 
-/// The user's choice in a web dialog (a cancelled dialog answers `None`).
-#[cfg(target_arch = "wasm32")]
+/// The user's choice in a web/Android SAF dialog (a cancelled dialog answers `None`).
+#[cfg(any(target_arch = "wasm32", target_os = "android"))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FileDialogAnswer {
     /// The chosen files on disk; the app reads them.
     Paths(Vec<String>),
-    /// A chosen file's name and contents (the web, where a page gets contents rather than paths).
+    /// A chosen file's name and contents (web/Android SAF, where the picker returns contents).
     Contents(String, Vec<u8>),
-    /// Several chosen files' names and contents, in order (the web's multi-select File › Open).
+    /// Several chosen files' names and contents, in order (multi-select File › Open).
     ContentsMany(Vec<(String, Vec<u8>)>),
-    /// The download's name.
+    /// The download's name or SAF content URI.
     SaveTo(String),
     /// The selected folder's path.
     FolderTo(String),
@@ -59,15 +58,15 @@ pub enum FileDialogAnswer {
     Unavailable(String),
 }
 
-/// Hands a web dialog's answer to the app and wakes it, from any thread. Dropping it unanswered
-/// counts as Cancel.
-#[cfg(target_arch = "wasm32")]
+/// Hands an async file dialog's answer to the app and wakes it, from any thread. Dropping it
+/// unanswered counts as Cancel.
+#[cfg(any(target_arch = "wasm32", target_os = "android"))]
 pub struct FileDialogReply {
     tx: std::sync::mpsc::Sender<Option<FileDialogAnswer>>,
     ctx: egui::Context,
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", target_os = "android"))]
 impl FileDialogReply {
     /// Answers the dialog.
     pub fn send(self, answer: Option<FileDialogAnswer>) {
@@ -77,8 +76,8 @@ impl FileDialogReply {
     }
 }
 
-/// Show a web file dialog and return at once, answering through the reply when the user is done.
-#[cfg(target_arch = "wasm32")]
+/// Show an async file dialog (web/Android SAF) and return at once, answering through the reply.
+#[cfg(any(target_arch = "wasm32", target_os = "android"))]
 pub type FileDialogFn = Box<dyn FnMut(FileDialogRequest, Option<&eframe::Frame>, FileDialogReply)>;
 
 /// What to do with the answer. It runs with the user's files only: Cancel and an unavailable
@@ -88,10 +87,10 @@ type Then = Box<dyn FnOnce(&mut PhotocraftApp, Picked) -> Result<Value, String>>
 /// The file dialog in progress.
 pub(crate) struct Pending {
     /// The service's ticket for the pick.
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
     id: PickId,
-    /// The web dialog's answer.
-    #[cfg(target_arch = "wasm32")]
+    /// The async dialog's answer (web / Android SAF).
+    #[cfg(any(target_arch = "wasm32", target_os = "android"))]
     answer: std::sync::mpsc::Receiver<Option<FileDialogAnswer>>,
     then: Then,
 }
@@ -154,16 +153,16 @@ impl PhotocraftApp {
     }
 
     /// Hands `request` to the host's file service.
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
     fn start_pick(&mut self, request: PickRequest, then: Then) -> Result<Pending, String> {
         // PLAN: hub-w1's `Framework` has no accessor for the host's `Files`; `Framework::files(&self) -> &dyn Files` (the host's) is assumed.
         let id = self.framework.files().pick(request);
         Ok(Pending { id, then })
     }
 
-    /// Shows the web dialog of [`Services::file_dialog`](crate::Services::file_dialog) for
-    /// `request`; the web has no host `Files` until FW-264.
-    #[cfg(target_arch = "wasm32")]
+    /// Shows the async dialog of [`Services::file_dialog`](crate::Services::file_dialog) for
+    /// `request` (web / Android SAF).
+    #[cfg(any(target_arch = "wasm32", target_os = "android"))]
     fn start_pick(&mut self, request: PickRequest, then: Then) -> Result<Pending, String> {
         let ctx = self.ctx().clone();
         let show = self.services.file_dialog.as_mut().ok_or(CANCELLED)?;
@@ -173,14 +172,14 @@ impl PhotocraftApp {
     }
 
     /// The answer of the pick in progress, once it has come.
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
     fn take_picked(&mut self) -> Option<Picked> {
         let id = self.file_dialog.as_ref()?.id;
         self.framework.files().take_answer(id)
     }
 
-    /// The answer of the web dialog in progress, once it has come.
-    #[cfg(target_arch = "wasm32")]
+    /// The answer of the async dialog in progress, once it has come (web / Android SAF).
+    #[cfg(any(target_arch = "wasm32", target_os = "android"))]
     fn take_picked(&mut self) -> Option<Picked> {
         use std::sync::mpsc::TryRecvError;
         match self.file_dialog.as_ref()?.answer.try_recv() {
@@ -404,7 +403,7 @@ impl PhotocraftApp {
     /// input of its own to apply: the panels hold the only state. The Save extension policy comes
     /// from Preferences ▸ File Handling: lowercase an upper-case extension when that is on, and
     /// always add the suggested extension to a bare name (the format follows the extension).
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
     pub(crate) fn pump_files(&mut self, parent: &eframe::Frame) {
         let policy = craft::dialogs::service::ExtensionPolicy { lowercase: self.session.prefs().file_handling.lowercase_extension, add_suggested: true };
         // PLAN: `Services::file_panels: Option<craft::dialogs::FilePanels>` is dialogs-w59's field.
@@ -435,8 +434,8 @@ impl PhotocraftApp {
     }
 }
 
-/// The web dialog request for `request`.
-#[cfg(target_arch = "wasm32")]
+/// The async dialog request for `request` (web / Android SAF).
+#[cfg(any(target_arch = "wasm32", target_os = "android"))]
 fn web_request(request: &PickRequest) -> FileDialogRequest {
     let initial_dir = request.directory.as_ref().map(|d| path_string(d));
     match request.kind {
@@ -454,8 +453,8 @@ fn web_request(request: &PickRequest) -> FileDialogRequest {
     }
 }
 
-/// The answer of a web dialog as the host's [`Picked`].
-#[cfg(target_arch = "wasm32")]
+/// The answer of an async dialog (web / Android SAF) as the host's [`Picked`].
+#[cfg(any(target_arch = "wasm32", target_os = "android"))]
 fn web_picked(answer: Option<FileDialogAnswer>) -> Picked {
     match answer {
         None => Picked::Cancelled,

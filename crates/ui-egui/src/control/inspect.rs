@@ -16,14 +16,22 @@ fn entry_json(entry: &Entry<String>) -> Value {
 /// The agent link for `ui.inspect`: its status (`port`, `launchFlags`, `error`), the suite's
 /// `AI-MCP` flag (`mcpFlag`) and the ArtCraft Launcher's switch (`launcher`).
 fn agent_link_json(app: &PhotocraftApp) -> Value {
-    let status = app.services.agent_link.as_ref().map(|link| link.status().clone()).unwrap_or_default();
-    let switch = app.services.agent_switch.as_ref();
-    let mut v = json!(status);
-    if let Some(m) = v.as_object_mut() {
-        m.insert("mcpFlag".into(), json!(switch.is_some_and(|s| s.mcp_flag())));
-        m.insert("launcher".into(), json!(switch.is_some_and(|s| s.launcher())));
+    #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
+    {
+        let status = app.services.agent_link.as_ref().map(|link| link.status().clone()).unwrap_or_default();
+        let switch = app.services.agent_switch.as_ref();
+        let mut v = json!(status);
+        if let Some(m) = v.as_object_mut() {
+            m.insert("mcpFlag".into(), json!(switch.is_some_and(|s| s.mcp_flag())));
+            m.insert("launcher".into(), json!(switch.is_some_and(|s| s.launcher())));
+        }
+        v
     }
-    v
+    #[cfg(any(target_arch = "wasm32", target_os = "android"))]
+    {
+        let _ = app;
+        json!({"mcpFlag": false, "launcher": false})
+    }
 }
 
 /// The open canvas context menu's rows for `ui.state`: the spelling suggestions first (type edit

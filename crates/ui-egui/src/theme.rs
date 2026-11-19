@@ -53,7 +53,13 @@ enum Palette {
     SoftDark,
     /// A low-contrast light theme: pale violet-grey surfaces, softened dark text and a periwinkle accent.
     SoftLight,
+    /// Планшетная тёмная тема для Android и OLED-экранов: глубокие тёмные поверхности,
+    /// высокий контраст текста и увеличенные радиусы скругления.
+    TabletDark,
 }
+
+/// Идентификатор планшетной тёмной темы (`Tablet Dark`).
+pub const TABLET_DARK_ID: &str = "photocraft.tablet-dark";
 
 impl Palette {
     const ALL: [Palette; 14] = [
@@ -90,6 +96,7 @@ impl Palette {
             Palette::BreezeDark => ("craft.breeze", true),
             Palette::SoftDark => ("craft.soft", true),
             Palette::SoftLight => ("craft.soft", false),
+            Palette::TabletDark => (TABLET_DARK_ID, true),
         }
     }
 
@@ -109,6 +116,7 @@ impl Palette {
             Palette::BreezeDark => "Breeze Dark",
             Palette::SoftDark => "Soft Dark",
             Palette::SoftLight => "Soft Light",
+            Palette::TabletDark => "Tablet Dark",
         }
     }
 
@@ -125,6 +133,9 @@ impl Palette {
 
     /// The palette that draws suite theme `id` in the dark or light mode, if PhotoCraft has one.
     fn of(id: &ThemeId, dark: bool) -> Option<Palette> {
+        if id.as_str() == TABLET_DARK_ID && dark {
+            return Some(Palette::TabletDark);
+        }
         Palette::ALL.into_iter().find(|p| p.theme() == (id.as_str(), dark))
     }
 
@@ -182,7 +193,7 @@ palette_themes! {
     pro => Pro, pro_medium => ProMedium, pro_light_gray => ProLightGray, pro_light => ProLight,
     studio => Studio, studio_light => StudioLight, classic => Classic, solarized_dark => SolarizedDark,
     adwaita => Adwaita, adwaita_dark => AdwaitaDark, breeze_light => BreezeLight, breeze_dark => BreezeDark,
-    soft_dark => SoftDark, soft_light => SoftLight,
+    soft_dark => SoftDark, soft_light => SoftLight, tablet_dark => TabletDark,
 }
 
 impl AppTheme {
@@ -218,6 +229,9 @@ impl AppTheme {
 
     /// The name PhotoCraft's Appearance settings give a theme it has a palette for.
     pub fn palette_label(id: &str, dark: bool) -> Option<&'static str> {
+        if id == TABLET_DARK_ID && dark {
+            return Some(Palette::TabletDark.label());
+        }
         Palette::ALL.into_iter().find(|p| p.theme() == (id, dark)).map(Palette::label)
     }
 
@@ -871,6 +885,46 @@ impl Tokens {
                 caption_close: Color32::from_rgb(220, 50, 47),
                 caption_close_text: Color32::from_rgb(253, 246, 227),
                 scrim: Color32::from_black_alpha(110),
+            },
+            // Планшетная OLED-тема для Android: глубокий тёмный фон (экономия батареи на AMOLED),
+            // чёткий контраст текста >= 4.5:1 и комфортные сенсорные скругления.
+            Palette::TabletDark => Tokens {
+                dark: kind.is_dark(),
+                chrome: Color32::from_rgb(24, 24, 28),
+                canvas: Color32::from_rgb(12, 12, 14),
+                dock: Color32::from_rgb(18, 18, 22),
+                card: Color32::from_rgb(30, 30, 36),
+                card_border: Color32::from_rgb(48, 48, 56),
+                field: Color32::from_rgb(38, 38, 46),
+                field_border: Color32::from_rgb(60, 60, 72),
+                hover: Color32::from_rgb(48, 48, 58),
+                pressed: Color32::from_rgb(62, 62, 74),
+                text: Color32::from_rgb(242, 244, 248),
+                text_dim: Color32::from_rgb(184, 188, 200),
+                text_faint: Color32::from_rgb(142, 148, 162),
+                icon: Color32::from_rgb(224, 228, 236),
+                accent: Color32::from_rgb(76, 154, 255),
+                accent_soft: Color32::from_rgba_unmultiplied(76, 154, 255, 56),
+                accent_border: Color32::from_rgba_unmultiplied(116, 178, 255, 160),
+                accent_text: Color32::from_rgb(186, 218, 255),
+                separator: Color32::from_rgb(38, 38, 46),
+                shadow: Color32::from_black_alpha(160),
+                primary_bg: Color32::from_rgb(46, 118, 218),
+                primary_text: Color32::WHITE,
+                danger: Color32::from_rgb(248, 112, 112),
+                warning: Color32::from_rgb(246, 198, 96),
+                radius_sm: 8.0,
+                radius: 10.0,
+                radius_lg: 14.0,
+                bevel: false,
+                pro: false,
+                tab_strip: Color32::TRANSPARENT,
+                row_selected: Color32::TRANSPARENT,
+                histogram_bg: Color32::from_rgb(12, 12, 14),
+                histogram_level: 230,
+                caption_close: Color32::from_rgb(204, 52, 42),
+                caption_close_text: Color32::WHITE,
+                scrim: Color32::from_black_alpha(130),
             },
         }
     }

@@ -190,3 +190,21 @@ fn every_palette_holds_text_contrast() {
         assert!(contrast(t.caption_close_text, t.caption_close) >= 4.0, "{kind:?}: close button glyph");
     }
 }
+
+#[test]
+fn tablet_dark_palette_holds_contrast_and_resolves_by_id() {
+    let kind = AppTheme::tablet_dark();
+    let id = ThemeId::parse(TABLET_DARK_ID).expect("valid TabletDark theme id");
+    assert_eq!(AppTheme::palette(&id, true), Some(kind.clone()));
+    assert_eq!(AppTheme::palette_label(TABLET_DARK_ID, true), Some("Tablet Dark"));
+    assert!(kind.is_dark());
+    let t = kind.tokens();
+    for surface in [t.chrome, t.dock, t.card, t.field] {
+        assert!(contrast(t.text, surface) >= 4.5, "TabletDark text on {surface:?}");
+        assert!(contrast(t.icon, surface) >= 4.5, "TabletDark icon on {surface:?}");
+        assert!(contrast(t.text_dim, surface) >= 3.0, "TabletDark dim text on {surface:?}");
+        assert!(contrast(t.text_faint, surface) >= 2.2, "TabletDark faint text on {surface:?}");
+    }
+    assert!(contrast(t.primary_text, t.primary_bg) >= 4.0);
+    assert!(contrast(t.caption_close_text, t.caption_close) >= 4.0);
+}

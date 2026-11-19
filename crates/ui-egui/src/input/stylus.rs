@@ -256,6 +256,19 @@ impl Stylus {
         }
     }
 
+    /// Обрабатывает нажатия боковых кнопок стилуса Android согласно настройкам `prefs.touch`
+    /// и диспатчит соответствующие команды PhotoCraft.
+    pub fn apply_android_buttons(app: &mut crate::PhotocraftApp, primary_pressed: bool, secondary_pressed: bool, pos: egui::Pos2) {
+        if !primary_pressed && !secondary_pressed {
+            return;
+        }
+        let touch = app.session.prefs().touch.clone();
+        let cmds = app.touch_gestures.stylus_button_commands(primary_pressed, secondary_pressed, pos, &touch);
+        for cmd in cmds {
+            crate::touch_gestures::execute_gesture_command(app, cmd);
+        }
+    }
+
     /// Pressure for the next tool event (1 for a mouse).
     pub fn pressure(&self) -> f32 {
         self.sample().map_or(1.0, |s| s.pressure)
